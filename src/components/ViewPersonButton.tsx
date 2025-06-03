@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { getPerson, updatePerson, deletePerson } from "@/actions/people";
-import type { Person } from "@/actions/people";
+import type { Person } from "@/lib/types";
 import { ContactStatus } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
-
+import Image from "next/image";
 interface ViewPersonButtonProps {
   personId: string;
 }
@@ -414,10 +414,12 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
                 <div className="space-y-6">
                   <div className="flex items-center space-x-4">
                     {person.profileImage && (
-                      <img
+                      <Image
                         src={person.profileImage}
                         alt={person.name || "Profile"}
                         className="h-24 w-24 rounded-full object-cover ring-2 ring-blue-200 dark:ring-blue-500/20"
+                        width={96}
+                        height={96}
                       />
                     )}
                     <div>
