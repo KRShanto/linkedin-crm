@@ -20,6 +20,8 @@ export const metadata: Metadata = {
   description: "Manage your LinkedIn connections and prospects",
 };
 
+export const revalidate = 0;
+
 export default async function CRMPage() {
   const people = await getPeople();
 
