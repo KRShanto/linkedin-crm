@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model People {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  name             String?
+  profileImage     String?
+  location         String?
+  headline         String?
+  about            String?
+  currentPosition  String?
+  currentCompany   String?
+  connectionDegree Int      @default(0)
+  websites         String[]
+  email            String?
+  phone            String?
+  connected        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
