@@ -21,7 +21,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
-import Image from "next/image";
 interface ViewPersonButtonProps {
   personId: string;
 }
@@ -186,6 +185,20 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
                     }
                     className="col-span-3 transition-all focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-500"
                     placeholder="https://linkedin.com/in/..."
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="profileImage" className="text-right">
+                    Profile Image URL
+                  </Label>
+                  <Input
+                    id="profileImage"
+                    value={formData.profileImage || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, profileImage: e.target.value })
+                    }
+                    className="col-span-3 transition-all focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-500"
+                    placeholder="https://..."
                   />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -414,12 +427,10 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
                 <div className="space-y-6">
                   <div className="flex items-center space-x-4">
                     {person.profileImage && (
-                      <Image
+                      <img
                         src={person.profileImage}
                         alt={person.name || "Profile"}
                         className="h-24 w-24 rounded-full object-cover ring-2 ring-blue-200 dark:ring-blue-500/20"
-                        width={96}
-                        height={96}
                       />
                     )}
                     <div>

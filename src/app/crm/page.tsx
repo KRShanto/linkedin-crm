@@ -12,7 +12,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import Image from "next/image";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -75,12 +74,10 @@ export default async function CRMPage() {
                 <TableCell className="py-4 px-6">
                   <div className="flex items-center gap-3">
                     {person.profileImage && (
-                      <Image
+                      <img
                         src={person.profileImage}
                         alt={person.name || "Profile"}
                         className="h-10 w-10 rounded-full object-cover ring-2 ring-blue-200 transition-all group-hover:ring-blue-400 dark:ring-blue-500/20 dark:group-hover:ring-blue-500/40"
-                        width={40}
-                        height={40}
                       />
                     )}
                     <div>
