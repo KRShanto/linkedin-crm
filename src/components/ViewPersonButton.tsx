@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { People } from "@prisma/client";
 import { getPerson, updatePerson, deletePerson } from "@/actions/people";
+import type { Person } from "@/actions/people";
+import { ContactStatus } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,11 +26,43 @@ interface ViewPersonButtonProps {
   personId: string;
 }
 
+type FormData = {
+  name: string;
+  url: string;
+  profileImage: string;
+  location: string;
+  headline: string;
+  about: string;
+  currentPosition: string;
+  currentCompany: string;
+  email: string;
+  phone: string;
+  websites: string[];
+  connected: boolean;
+  connectionDegree: number;
+  status: ContactStatus;
+};
+
 export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
   const [open, setOpen] = useState(false);
-  const [person, setPerson] = useState<People | null>(null);
+  const [person, setPerson] = useState<Person | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<Partial<People>>({});
+  const [formData, setFormData] = useState<FormData>({
+    name: "",
+    url: "",
+    profileImage: "",
+    location: "",
+    headline: "",
+    about: "",
+    currentPosition: "",
+    currentCompany: "",
+    email: "",
+    phone: "",
+    websites: [],
+    connected: false,
+    connectionDegree: 0,
+    status: ContactStatus.NOT_STARTED,
+  });
   const [newWebsite, setNewWebsite] = useState("");
   const router = useRouter();
 
@@ -43,7 +76,24 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
   async function handleOpen() {
     const data = await getPerson(personId);
     setPerson(data);
-    setFormData(data || {});
+    if (data) {
+      setFormData({
+        name: data.name || "",
+        url: data.url || "",
+        profileImage: data.profileImage || "",
+        location: data.location || "",
+        headline: data.headline || "",
+        about: data.about || "",
+        currentPosition: data.currentPosition || "",
+        currentCompany: data.currentCompany || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        websites: data.websites || [],
+        connected: data.connected,
+        connectionDegree: data.connectionDegree,
+        status: data.status || ContactStatus.NOT_STARTED,
+      });
+    }
     setOpen(true);
   }
 
@@ -52,7 +102,7 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
     if (newWebsite.trim()) {
       setFormData({
         ...formData,
-        websites: [...(formData.websites || []), newWebsite.trim()],
+        websites: [...formData.websites, newWebsite.trim()],
       });
       setNewWebsite("");
     }
@@ -61,16 +111,19 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
   function removeWebsite(index: number) {
     setFormData({
       ...formData,
-      websites: formData.websites?.filter((_, i) => i !== index) || [],
+      websites: formData.websites.filter((_, i) => i !== index),
     });
   }
 
   async function handleUpdate() {
     if (!person) return;
-    await updatePerson(person.id, formData);
-    setIsEditing(false);
-    router.refresh();
-    setOpen(false);
+    const updated = await updatePerson(person.id, formData);
+    if (updated) {
+      setIsEditing(false);
+      setPerson(updated);
+      router.refresh();
+      setOpen(false);
+    }
   }
 
   async function handleDelete() {
@@ -330,6 +383,31 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
                     )}
                   </div>
                 </div>
+                <Separator />
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="status" className="text-right">
+                    Status
+                  </Label>
+                  <div className="col-span-3">
+                    <select
+                      id="status"
+                      value={formData.status}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          status: e.target.value as ContactStatus,
+                        })
+                      }
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {Object.values(ContactStatus).map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
             ) : (
               person && (
@@ -409,6 +487,23 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
                       <Label className="text-muted-foreground">Phone</Label>
                       <p className="mt-1">{person.phone}</p>
                     </div>
+                    <div>
+                      <Label className="text-muted-foreground">Status</Label>
+                      <p className="mt-1">
+                        <Badge
+                          variant="outline"
+                          className={`
+                            ${
+                              person.status === ContactStatus.CANCELLED
+                                ? "border-red-200 text-red-700 dark:border-red-800 dark:text-red-300"
+                                : "border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300"
+                            }
+                          `}
+                        >
+                          {person.status}
+                        </Badge>
+                      </p>
+                    </div>
                   </div>
                   {person.about && (
                     <div>
@@ -442,7 +537,7 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
 
         <DialogFooter className="gap-2 sm:gap-0 mt-6">
           {isEditing ? (
-            <>
+            <div className="flex gap-3 justify-end">
               <Button
                 variant="outline"
                 onClick={() => setIsEditing(false)}
@@ -456,9 +551,9 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
               >
                 Save Changes
               </Button>
-            </>
+            </div>
           ) : (
-            <>
+            <div className="flex gap-3 justify-end">
               <Button
                 variant="outline"
                 onClick={() => setIsEditing(true)}
@@ -473,7 +568,7 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
               >
                 Delete
               </Button>
-            </>
+            </div>
           )}
         </DialogFooter>
       </DialogContent>

@@ -17,13 +17,31 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { createPerson } from "@/actions/people";
+import { ContactStatus } from "@/lib/types";
 import { Plus, X } from "lucide-react";
+
+type FormData = {
+  name: string;
+  url: string;
+  profileImage: string;
+  location: string;
+  headline: string;
+  about: string;
+  currentPosition: string;
+  currentCompany: string;
+  email: string;
+  phone: string;
+  websites: string[];
+  connected: boolean;
+  connectionDegree: number;
+  status: ContactStatus;
+};
 
 export function AddPersonDialog() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const [newWebsite, setNewWebsite] = useState("");
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: "",
     url: "",
     profileImage: "",
@@ -34,9 +52,10 @@ export function AddPersonDialog() {
     currentCompany: "",
     email: "",
     phone: "",
-    websites: [] as string[],
+    websites: [],
     connected: false,
     connectionDegree: 0,
+    status: ContactStatus.NOT_STARTED,
   });
 
   function addWebsite(e: React.FormEvent) {
@@ -58,24 +77,27 @@ export function AddPersonDialog() {
   }
 
   async function handleSubmit() {
-    await createPerson(formData);
-    router.refresh();
-    setOpen(false);
-    setFormData({
-      name: "",
-      url: "",
-      profileImage: "",
-      location: "",
-      headline: "",
-      about: "",
-      currentPosition: "",
-      currentCompany: "",
-      email: "",
-      phone: "",
-      websites: [],
-      connected: false,
-      connectionDegree: 0,
-    });
+    const person = await createPerson(formData);
+    if (person) {
+      router.refresh();
+      setOpen(false);
+      setFormData({
+        name: "",
+        url: "",
+        profileImage: "",
+        location: "",
+        headline: "",
+        about: "",
+        currentPosition: "",
+        currentCompany: "",
+        email: "",
+        phone: "",
+        websites: [],
+        connected: false,
+        connectionDegree: 0,
+        status: ContactStatus.NOT_STARTED,
+      });
+    }
   }
 
   return (
@@ -242,7 +264,7 @@ export function AddPersonDialog() {
               <div className="grid grid-cols-4 items-start gap-4">
                 <Label className="text-right pt-2">Websites</Label>
                 <div className="col-span-3 space-y-2">
-                  {formData.websites.map((website, index) => (
+                  {formData.websites?.map((website, index) => (
                     <div key={index} className="flex items-center gap-2 group">
                       <span className="flex-1 text-sm">{website}</span>
                       <Button
@@ -329,24 +351,51 @@ export function AddPersonDialog() {
                   )}
                 </div>
               </div>
+              <Separator className="my-2" />
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="status" className="text-right">
+                  Status
+                </Label>
+                <div className="col-span-3">
+                  <select
+                    id="status"
+                    value={formData.status}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        status: e.target.value as ContactStatus,
+                      })
+                    }
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {Object.values(ContactStatus).map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0 mt-6">
-          <Button
-            variant="outline"
-            onClick={() => setOpen(false)}
-            className="cursor-pointer transition-all hover:bg-blue-50"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            className="cursor-pointer transition-all hover:scale-105 bg-gradient-to-r from-blue-500 to-blue-600 text-white"
-          >
-            Add Contact
-          </Button>
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              className="cursor-pointer transition-all hover:bg-blue-50"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              className="cursor-pointer transition-all hover:scale-105 bg-gradient-to-r from-blue-500 to-blue-600 text-white"
+            >
+              Add Contact
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

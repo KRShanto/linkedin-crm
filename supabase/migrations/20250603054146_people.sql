@@ -15,6 +15,23 @@ CREATE TABLE IF NOT EXISTS "People" (
     "email" TEXT,
     "phone" TEXT,
     "connected" BOOLEAN DEFAULT FALSE NOT NULL,
+    "status" TEXT DEFAULT 'Not Started (1/12)' NOT NULL CHECK (
+        "status" IN (
+            'Not Started (1/12)',
+            'Sent Connection (2/12)',
+            'Accepted Connection (3/12)',
+            'Sent Initial Message (4/12)',
+            'Conversation Started (5/12)',
+            'Asked Report (6/12)',
+            'Sent Report (7/12)',
+            'Asked Mockup (8/12)',
+            'Sent Mockup (9/12)',
+            'Sent Quotation (10/12)',
+            'Payment Done (11/12)',
+            'Delivery Done (12/12)',
+            'Cancelled'
+        )
+    ),
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

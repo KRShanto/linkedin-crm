@@ -1,7 +1,8 @@
 import { getPeople } from "@/actions/people";
 import { ViewPersonButton } from "@/components/ViewPersonButton";
 import { AddPersonDialog } from "@/components/AddPersonDialog";
-import { People } from "@prisma/client";
+import type { Person } from "@/actions/people";
+import { ContactStatus } from "@/lib/types";
 import {
   Table,
   TableBody,
@@ -40,58 +41,58 @@ export default async function CRMPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-blue-50/50 dark:bg-blue-950/50">
-              <TableHead className="font-semibold">Name</TableHead>
-              <TableHead className="font-semibold">Location</TableHead>
-              <TableHead className="font-semibold">Current Position</TableHead>
-              <TableHead className="font-semibold">Connection</TableHead>
-              <TableHead className="font-semibold">Profile</TableHead>
-              <TableHead className="text-right font-semibold">
+              <TableHead className="font-semibold py-4 px-6">Name</TableHead>
+              <TableHead className="font-semibold py-4 px-6">
+                Location
+              </TableHead>
+              <TableHead className="font-semibold py-4 px-6">
+                Current Position
+              </TableHead>
+              <TableHead className="font-semibold py-4 px-6">
+                Connection
+              </TableHead>
+              <TableHead className="font-semibold py-4 px-6">Status</TableHead>
+              <TableHead className="text-right font-semibold py-4 px-6">
                 Actions
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {people.map((person: People) => (
+            {people.map((person: Person) => (
               <TableRow
                 key={person.id}
                 className="group transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/50"
               >
-                <TableCell>
-                  {person.url ? (
-                    <a
-                      href={person.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 hover:opacity-80 cursor-pointer group/name"
-                    >
-                      {person.profileImage && (
-                        <img
-                          src={person.profileImage}
-                          alt={person.name || "Profile"}
-                          className="h-10 w-10 rounded-full object-cover ring-2 ring-blue-200 transition-all group-hover/name:ring-blue-400 dark:ring-blue-500/20 dark:group-hover/name:ring-blue-500/40"
-                        />
-                      )}
-                      <span className="group-hover/name:text-blue-600 dark:group-hover/name:text-blue-400 transition-colors">
+                <TableCell className="py-4 px-6">
+                  <div className="flex items-center gap-3">
+                    {person.profileImage && (
+                      <img
+                        src={person.profileImage}
+                        alt={person.name || "Profile"}
+                        className="h-10 w-10 rounded-full object-cover ring-2 ring-blue-200 transition-all group-hover:ring-blue-400 dark:ring-blue-500/20 dark:group-hover:ring-blue-500/40"
+                      />
+                    )}
+                    <div>
+                      <span className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {person.name}
                       </span>
-                    </a>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      {person.profileImage && (
-                        <img
-                          src={person.profileImage}
-                          alt={person.name || "Profile"}
-                          className="h-10 w-10 rounded-full object-cover ring-2 ring-blue-200 dark:ring-blue-500/20"
-                        />
+                      {person.url && (
+                        <a
+                          href={person.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline cursor-pointer transition-colors block"
+                        >
+                          View Profile
+                        </a>
                       )}
-                      <span>{person.name}</span>
                     </div>
-                  )}
+                  </div>
                 </TableCell>
-                <TableCell className="text-muted-foreground">
+                <TableCell className="text-muted-foreground py-4 px-6">
                   {person.location}
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-4 px-6">
                   <div className="flex flex-col">
                     <span>{person.currentPosition}</span>
                     {person.currentCompany && (
@@ -101,7 +102,7 @@ export default async function CRMPage() {
                     )}
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-4 px-6">
                   <div className="flex items-center gap-2">
                     {person.connected ? (
                       <Badge className="cursor-default bg-blue-500 hover:bg-blue-600 transition-colors">
@@ -124,21 +125,21 @@ export default async function CRMPage() {
                     )}
                   </div>
                 </TableCell>
-                <TableCell>
-                  {person.url ? (
-                    <a
-                      href={person.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline cursor-pointer transition-colors"
-                    >
-                      LinkedIn
-                    </a>
-                  ) : (
-                    <span className="text-muted-foreground">No URL</span>
-                  )}
+                <TableCell className="py-4 px-6">
+                  <Badge
+                    variant="outline"
+                    className={`
+                      ${
+                        person.status === ContactStatus.CANCELLED
+                          ? "border-red-200 text-red-700 dark:border-red-800 dark:text-red-300"
+                          : "border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300"
+                      }
+                    `}
+                  >
+                    {person.status}
+                  </Badge>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right py-4 px-6">
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                     <ViewPersonButton personId={person.id} />
                   </div>
