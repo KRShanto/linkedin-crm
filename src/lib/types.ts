@@ -31,6 +31,7 @@ export type Person = {
   phone?: string | null;
   connected: boolean;
   status: ContactStatus;
+  engagement: number;
   createdAt: Date;
   updatedAt: Date;
 };

@@ -1,0 +1,2 @@
+ALTER TABLE "People"
+ADD COLUMN "engagement" INTEGER DEFAULT 0;

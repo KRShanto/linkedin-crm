@@ -143,6 +143,9 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
               <TableHead className="font-semibold py-4 px-6 bg-zinc-50 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300">
                 Status
               </TableHead>
+              <TableHead className="font-semibold py-4 px-6 bg-zinc-50 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300">
+                Engagement
+              </TableHead>
               <TableHead className="text-right font-semibold py-4 px-6 bg-zinc-50 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300">
                 Actions
               </TableHead>
@@ -228,6 +231,40 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
                     }
                     showProgress={false}
                   />
+                </TableCell>
+                <TableCell className="py-4 px-6">
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-7 w-7"
+                      onClick={() => {
+                        const currentValue = person.engagement ?? 0;
+                        const newValue = Math.max(0, currentValue - 1);
+                        handleFieldUpdate(person.id, "engagement", newValue);
+                      }}
+                    >
+                      <span className="text-lg leading-none">-</span>
+                    </Button>
+                    <span className="w-8 text-center font-medium text-zinc-900 dark:text-zinc-100">
+                      {person.engagement ?? 0}
+                    </span>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-7 w-7"
+                      onClick={() => {
+                        const currentValue = person.engagement ?? 0;
+                        handleFieldUpdate(
+                          person.id,
+                          "engagement",
+                          currentValue + 1
+                        );
+                      }}
+                    >
+                      <span className="text-lg leading-none">+</span>
+                    </Button>
+                  </div>
                 </TableCell>
                 <TableCell className="text-right py-4 px-6">
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity">
