@@ -21,6 +21,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
+import { ProgressSelect } from "@/components/ui/progress-select";
+
 interface ViewPersonButtonProps {
   personId: string;
 }
@@ -41,6 +43,15 @@ type FormData = {
   connectionDegree: number;
   status: ContactStatus;
 };
+
+const statusOptions = Object.entries(ContactStatus).map(([, value]) => {
+  const match = value.match(/\((\d+)\/(\d+)\)/);
+  return {
+    value,
+    label: value,
+    ...(match ? { step: parseInt(match[1]), total: parseInt(match[2]) } : {}),
+  };
+});
 
 export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
   const [open, setOpen] = useState(false);
@@ -402,23 +413,16 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
                     Status
                   </Label>
                   <div className="col-span-3">
-                    <select
-                      id="status"
+                    <ProgressSelect
                       value={formData.status}
-                      onChange={(e) =>
+                      onValueChange={(value) =>
                         setFormData({
                           ...formData,
-                          status: e.target.value as ContactStatus,
+                          status: value as ContactStatus,
                         })
                       }
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {Object.values(ContactStatus).map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
+                      options={statusOptions}
+                    />
                   </div>
                 </div>
               </div>
@@ -502,20 +506,14 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
                     </div>
                     <div>
                       <Label className="text-muted-foreground">Status</Label>
-                      <p className="mt-1">
-                        <Badge
-                          variant="outline"
-                          className={`
-                            ${
-                              person.status === ContactStatus.CANCELLED
-                                ? "border-red-200 text-red-700 dark:border-red-800 dark:text-red-300"
-                                : "border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300"
-                            }
-                          `}
-                        >
-                          {person.status}
-                        </Badge>
-                      </p>
+                      <div className="mt-1">
+                        <ProgressSelect
+                          value={person.status}
+                          options={statusOptions}
+                          disabled
+                          showProgress={false}
+                        />
+                      </div>
                     </div>
                   </div>
                   {person.about && (

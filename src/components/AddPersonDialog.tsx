@@ -19,6 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { createPerson } from "@/actions/people";
 import { ContactStatus } from "@/lib/types";
 import { Plus, X } from "lucide-react";
+import { ProgressSelect } from "@/components/ui/progress-select";
 
 type FormData = {
   name: string;
@@ -36,6 +37,15 @@ type FormData = {
   connectionDegree: number;
   status: ContactStatus;
 };
+
+const statusOptions = Object.entries(ContactStatus).map(([, value]) => {
+  const match = value.match(/\((\d+)\/(\d+)\)/);
+  return {
+    value,
+    label: value,
+    ...(match ? { step: parseInt(match[1]), total: parseInt(match[2]) } : {}),
+  };
+});
 
 export function AddPersonDialog() {
   const [open, setOpen] = useState(false);
@@ -357,23 +367,16 @@ export function AddPersonDialog() {
                   Status
                 </Label>
                 <div className="col-span-3">
-                  <select
-                    id="status"
+                  <ProgressSelect
                     value={formData.status}
-                    onChange={(e) =>
+                    onValueChange={(value) =>
                       setFormData({
                         ...formData,
-                        status: e.target.value as ContactStatus,
+                        status: value as ContactStatus,
                       })
                     }
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {Object.values(ContactStatus).map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
+                    options={statusOptions}
+                  />
                 </div>
               </div>
             </div>

@@ -106,3 +106,27 @@ export async function deletePerson(id: string) {
 
   revalidatePath("/crm");
 }
+
+export async function bulkUpdatePeople(updates: { id: string; changes: Partial<Person> }[]) {
+  try {
+    const results = await Promise.all(
+      updates.map(async ({ id, changes }) => {
+        const { data, error } = await supabase
+          .from('People')
+          .update(changes)
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      })
+    );
+
+    revalidatePath("/crm");
+    return results;
+  } catch (error) {
+    console.error('Error updating people:', error);
+    return null;
+  }
+}
