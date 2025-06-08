@@ -129,7 +129,7 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
           <TableHeader>
             <TableRow className="border-b border-zinc-200 dark:border-zinc-800">
               <TableHead className="font-semibold py-4 px-6 bg-zinc-50 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300">
-                Name
+                Name ({people.length} leads)
               </TableHead>
               <TableHead className="font-semibold py-4 px-6 bg-zinc-50 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300">
                 Location
