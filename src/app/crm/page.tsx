@@ -32,35 +32,39 @@ export default async function CRMPage() {
   }
 
   return (
-    <div className="p-8 max-w-[1600px] mx-auto">
+    <div className="p-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-500 to-blue-700 bg-clip-text text-transparent">
-            LinkedIn CRM
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+            Contacts
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
             Manage your LinkedIn connections and prospects
           </p>
         </div>
         <AddPersonDialog />
       </div>
 
-      <div className="rounded-xl border bg-card shadow-sm">
+      <div className="rounded-xl border bg-white dark:bg-zinc-900/30 shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow className="bg-blue-50/50 dark:bg-blue-950/50">
-              <TableHead className="font-semibold py-4 px-6">Name</TableHead>
-              <TableHead className="font-semibold py-4 px-6">
+            <TableRow className="border-b border-zinc-200 dark:border-zinc-800">
+              <TableHead className="font-semibold py-4 px-6 bg-zinc-50 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300">
+                Name
+              </TableHead>
+              <TableHead className="font-semibold py-4 px-6 bg-zinc-50 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300">
                 Location
               </TableHead>
-              <TableHead className="font-semibold py-4 px-6">
+              <TableHead className="font-semibold py-4 px-6 bg-zinc-50 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300">
                 Current Position
               </TableHead>
-              <TableHead className="font-semibold py-4 px-6">
+              <TableHead className="font-semibold py-4 px-6 bg-zinc-50 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300">
                 Connection
               </TableHead>
-              <TableHead className="font-semibold py-4 px-6">Status</TableHead>
-              <TableHead className="text-right font-semibold py-4 px-6">
+              <TableHead className="font-semibold py-4 px-6 bg-zinc-50 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300">
+                Status
+              </TableHead>
+              <TableHead className="text-right font-semibold py-4 px-6 bg-zinc-50 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300">
                 Actions
               </TableHead>
             </TableRow>
@@ -69,7 +73,7 @@ export default async function CRMPage() {
             {people.map((person: Person) => (
               <TableRow
                 key={person.id}
-                className="group transition-colors hover:bg-blue-50/50 dark:hover:bg-blue-950/50"
+                className="group transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/20 border-b border-zinc-200 dark:border-zinc-800"
               >
                 <TableCell className="py-4 px-6">
                   <div className="flex items-center gap-3">
@@ -77,11 +81,11 @@ export default async function CRMPage() {
                       <img
                         src={person.profileImage}
                         alt={person.name || "Profile"}
-                        className="h-10 w-10 rounded-full object-cover ring-2 ring-blue-200 transition-all group-hover:ring-blue-400 dark:ring-blue-500/20 dark:group-hover:ring-blue-500/40"
+                        className="h-10 w-10 rounded-full object-cover ring-2 ring-zinc-200 transition-all group-hover:ring-blue-200 dark:ring-zinc-700 dark:group-hover:ring-blue-500/30"
                       />
                     )}
                     <div>
-                      <span className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      <span className="font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {person.name}
                       </span>
                       {person.url && (
@@ -97,14 +101,16 @@ export default async function CRMPage() {
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="text-muted-foreground py-4 px-6">
+                <TableCell className="py-4 px-6 text-zinc-600 dark:text-zinc-400">
                   {person.location}
                 </TableCell>
                 <TableCell className="py-4 px-6">
                   <div className="flex flex-col">
-                    <span>{person.currentPosition}</span>
+                    <span className="text-zinc-900 dark:text-zinc-100">
+                      {person.currentPosition}
+                    </span>
                     {person.currentCompany && (
-                      <span className="text-sm text-muted-foreground">
+                      <span className="text-sm text-zinc-600 dark:text-zinc-400">
                         {person.currentCompany}
                       </span>
                     )}
@@ -113,20 +119,20 @@ export default async function CRMPage() {
                 <TableCell className="py-4 px-6">
                   <div className="flex items-center gap-2">
                     {person.connected ? (
-                      <Badge className="cursor-default bg-blue-500 hover:bg-blue-600 transition-colors">
+                      <Badge className="cursor-default bg-blue-500 hover:bg-blue-600 dark:bg-blue-500 dark:hover:bg-blue-600 text-white">
                         Connected
                       </Badge>
                     ) : person.connectionDegree > 0 ? (
                       <Badge
                         variant="secondary"
-                        className="cursor-default bg-blue-100 hover:bg-blue-200 text-blue-700 transition-colors dark:bg-blue-900 dark:text-blue-100 dark:hover:bg-blue-800"
+                        className="cursor-default bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 dark:text-blue-400"
                       >
                         {getConnectionLabel(person.connectionDegree)} connection
                       </Badge>
                     ) : (
                       <Badge
                         variant="outline"
-                        className="cursor-default transition-colors border-blue-200 dark:border-blue-800"
+                        className="cursor-default border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
                       >
                         Out of network
                       </Badge>
@@ -139,8 +145,8 @@ export default async function CRMPage() {
                     className={`
                       ${
                         person.status === ContactStatus.CANCELLED
-                          ? "border-red-200 text-red-700 dark:border-red-800 dark:text-red-300"
-                          : "border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300"
+                          ? "border-red-200 text-red-700 dark:border-red-500/20 dark:text-red-400"
+                          : "border-blue-200 text-blue-700 dark:border-blue-500/20 dark:text-blue-400"
                       }
                     `}
                   >

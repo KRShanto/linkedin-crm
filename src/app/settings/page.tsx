@@ -1,12 +1,12 @@
-export default function DashboardPage() {
+export default function SettingsPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          Dashboard
+          Settings
         </h1>
         <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-          Overview of your LinkedIn networking activities
+          Configure your LinkedIn CRM preferences
         </p>
       </div>
 
@@ -16,7 +16,7 @@ export default function DashboardPage() {
             Coming Soon
           </h2>
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            Dashboard features are under development
+            Settings features are under development
           </p>
         </div>
       </div>

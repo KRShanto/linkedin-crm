@@ -22,11 +22,11 @@
     "net"
   ],
   "files.exclude": {
-    "**/.DS_Store": true,
     "**/.git": true,
-    "**/.hg": true,
     "**/.svn": true,
+    "**/.hg": true,
     "**/CVS": true,
+    "**/.DS_Store": true,
     "**/Thumbs.db": true
   },
   "hide-files.files": []
