@@ -159,22 +159,21 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
               >
                 <TableCell className="py-4 px-6">
                   <div className="flex items-center gap-3">
-                    {person.profileImage && (
+                    {person.profileImage ? (
                       <img
                         src={person.profileImage}
-                        alt={person.name || ""}
-                        className="w-8 h-8 rounded-full"
+                        alt={person.name || "Profile"}
+                        className="h-12 w-12 rounded-full object-cover"
                       />
-                    )}
-                    <div>
-                      <div className="font-medium text-zinc-900 dark:text-zinc-100">
-                        {person.name}
+                    ) : (
+                      <div className="h-12 w-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                        <span className="text-lg text-zinc-500 dark:text-zinc-400">
+                          {person.name?.[0]?.toUpperCase() || "?"}
+                        </span>
                       </div>
-                      {person.headline && (
-                        <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                          {person.headline}
-                        </div>
-                      )}
+                    )}
+                    <div className="font-medium text-lg text-zinc-900 dark:text-zinc-100">
+                      {person.name}
                     </div>
                   </div>
                 </TableCell>
