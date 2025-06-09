@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -49,8 +48,8 @@ const statusOptions = Object.entries(ContactStatus).map(([, value]) => {
 
 export function AddPersonDialog() {
   const [open, setOpen] = useState(false);
-  const router = useRouter();
   const [newWebsite, setNewWebsite] = useState("");
+  const [isPending, startTransition] = useTransition();
   const [formData, setFormData] = useState<FormData>({
     name: "",
     url: "",
@@ -86,28 +85,34 @@ export function AddPersonDialog() {
     });
   }
 
-  async function handleSubmit() {
-    const person = await createPerson(formData);
-    if (person) {
-      router.refresh();
-      setOpen(false);
-      setFormData({
-        name: "",
-        url: "",
-        profileImage: "",
-        location: "",
-        headline: "",
-        about: "",
-        currentPosition: "",
-        currentCompany: "",
-        email: "",
-        phone: "",
-        websites: [],
-        connected: false,
-        connectionDegree: 0,
-        status: ContactStatus.NOT_STARTED,
-      });
-    }
+  function handleSubmit() {
+    startTransition(async () => {
+      try {
+        const person = await createPerson(formData);
+        if (person) {
+          setOpen(false);
+          setFormData({
+            name: "",
+            url: "",
+            profileImage: "",
+            location: "",
+            headline: "",
+            about: "",
+            currentPosition: "",
+            currentCompany: "",
+            email: "",
+            phone: "",
+            websites: [],
+            connected: false,
+            connectionDegree: 0,
+            status: ContactStatus.NOT_STARTED,
+          });
+          // The parent page will automatically revalidate and show the new person
+        }
+      } catch (error) {
+        console.error("Failed to create person:", error);
+      }
+    });
   }
 
   return (
@@ -394,9 +399,10 @@ export function AddPersonDialog() {
             </Button>
             <Button
               onClick={handleSubmit}
+              disabled={isPending}
               className="cursor-pointer transition-all hover:scale-105 bg-gradient-to-r from-blue-500 to-blue-600 text-white"
             >
-              Add Contact
+              {isPending ? "Adding..." : "Add Contact"}
             </Button>
           </div>
         </DialogFooter>

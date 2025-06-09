@@ -19,9 +19,8 @@ import {
   useTableState,
 } from "@/components/providers/TableStateProvider";
 import { bulkUpdatePeople } from "@/actions/people";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useOptimistic, useTransition, useCallback } from "react";
 
 const statusOptions = Object.entries(ContactStatus).map(([, value]) => {
   const match = value.match(/\((\d+)\/(\d+)\)/);
@@ -32,12 +31,34 @@ const statusOptions = Object.entries(ContactStatus).map(([, value]) => {
   };
 });
 
+type OptimisticAction =
+  | { type: "add"; payload: Person }
+  | { type: "update"; payload: { id: string; changes: Partial<Person> } }
+  | { type: "delete"; payload: { id: string } };
+
 function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
   const { updateField, hasChanges, getChangedRecords, resetChanges } =
     useTableState();
-  const [isSaving, setIsSaving] = useState(false);
-  const [people, setPeople] = useState(initialPeople);
-  const router = useRouter();
+  const [optimisticPeople, addOptimisticUpdate] = useOptimistic(
+    initialPeople,
+    (state: Person[], action: OptimisticAction) => {
+      switch (action.type) {
+        case "add":
+          return [action.payload, ...state];
+        case "update":
+          return state.map((person) =>
+            person.id === action.payload.id
+              ? { ...person, ...action.payload.changes }
+              : person
+          );
+        case "delete":
+          return state.filter((person) => person.id !== action.payload.id);
+        default:
+          return state;
+      }
+    }
+  );
+  const [isPending, startTransition] = useTransition();
 
   function getConnectionLabel(degree: number) {
     if (degree === 1) return "1st";
@@ -46,51 +67,40 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
     return `${degree}th`;
   }
 
-  async function handleSave() {
-    try {
-      setIsSaving(true);
-      const records = getChangedRecords();
+  const handleSave = useCallback(() => {
+    const records = getChangedRecords();
 
+    startTransition(async () => {
       // Apply optimistic updates
-      setPeople((currentPeople) => {
-        return currentPeople.map((person) => {
-          const changes = records.find((r) => r.id === person.id)?.changes;
-          if (changes) {
-            return { ...person, ...changes };
-          }
-          return person;
-        });
+      records.forEach(({ id, changes }) => {
+        addOptimisticUpdate({ type: "update", payload: { id, changes } });
       });
 
-      // Send changes to server
-      await bulkUpdatePeople(records);
-      resetChanges();
-      router.refresh();
-    } catch (error) {
-      // On error, revert to initial state
-      setPeople(initialPeople);
-      console.error("Failed to save changes:", error);
-    } finally {
-      setIsSaving(false);
-    }
-  }
+      try {
+        // Send changes to server
+        await bulkUpdatePeople(records);
+        resetChanges();
+      } catch (error) {
+        console.error("Failed to save changes:", error);
+        // The optimistic update will be reverted automatically on error
+      }
+    });
+  }, [getChangedRecords, resetChanges, addOptimisticUpdate]);
 
   // Update local state immediately when a field changes
-  function handleFieldUpdate<K extends keyof Person>(
-    personId: string,
-    field: K,
-    value: Person[K]
-  ) {
-    updateField(personId, field, value);
-    setPeople((currentPeople) => {
-      return currentPeople.map((person) => {
-        if (person.id === personId) {
-          return { ...person, [field]: value };
-        }
-        return person;
+  const handleFieldUpdate = useCallback(
+    <K extends keyof Person>(personId: string, field: K, value: Person[K]) => {
+      updateField(personId, field, value);
+      // Apply optimistic update immediately
+      addOptimisticUpdate({
+        type: "update",
+        payload: { id: personId, changes: { [field]: value } },
       });
-    });
-  }
+    },
+    [updateField, addOptimisticUpdate]
+  );
+
+  // TODO: Add handlers for optimistic updates once child components are updated
 
   return (
     <div className="p-8">
@@ -107,10 +117,10 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
           {hasChanges && (
             <Button
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={isPending}
               className="bg-green-500 hover:bg-green-600 text-white"
             >
-              {isSaving ? (
+              {isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Saving...
@@ -129,7 +139,7 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
           <TableHeader>
             <TableRow className="border-b border-zinc-200 dark:border-zinc-800">
               <TableHead className="font-semibold py-4 px-6 bg-zinc-50 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300">
-                Name ({people.length} leads)
+                Name ({optimisticPeople.length} leads)
               </TableHead>
               <TableHead className="font-semibold py-4 px-6 bg-zinc-50 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300">
                 Location
@@ -152,7 +162,7 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {people.map((person: Person) => (
+            {optimisticPeople.map((person: Person) => (
               <TableRow
                 key={person.id}
                 className="group border-b border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"

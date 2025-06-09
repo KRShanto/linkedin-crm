@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { getPerson, updatePerson, deletePerson } from "@/actions/people";
 import type { Person } from "@/lib/types";
 import { ContactStatus } from "@/lib/types";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { ProgressSelect } from "@/components/ui/progress-select";
 
 interface ViewPersonButtonProps {
@@ -57,6 +56,7 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
   const [open, setOpen] = useState(false);
   const [person, setPerson] = useState<Person | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [formData, setFormData] = useState<FormData>({
     name: "",
     url: "",
@@ -74,7 +74,6 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
     status: ContactStatus.NOT_STARTED,
   });
   const [newWebsite, setNewWebsite] = useState("");
-  const router = useRouter();
 
   function getConnectionLabel(degree: number) {
     if (degree === 1) return "1st";
@@ -125,22 +124,36 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
     });
   }
 
-  async function handleUpdate() {
+  function handleUpdate() {
     if (!person) return;
-    const updated = await updatePerson(person.id, formData);
-    if (updated) {
-      setIsEditing(false);
-      setPerson(updated);
-      router.refresh();
-      setOpen(false);
-    }
+
+    startTransition(async () => {
+      try {
+        const updated = await updatePerson(person.id, formData);
+        if (updated) {
+          setIsEditing(false);
+          setPerson(updated);
+          setOpen(false);
+          // The parent component will handle the optimistic update
+        }
+      } catch (error) {
+        console.error("Failed to update person:", error);
+      }
+    });
   }
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!person) return;
-    await deletePerson(person.id);
-    router.refresh();
-    setOpen(false);
+
+    startTransition(async () => {
+      try {
+        await deletePerson(person.id);
+        setOpen(false);
+        // The parent component will handle the optimistic update
+      } catch (error) {
+        console.error("Failed to delete person:", error);
+      }
+    });
   }
 
   return (
@@ -558,9 +571,17 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
               </Button>
               <Button
                 onClick={handleUpdate}
+                disabled={isPending}
                 className="cursor-pointer transition-all hover:scale-105 bg-gradient-to-r from-blue-500 to-blue-600 text-white"
               >
-                Save Changes
+                {isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
               </Button>
             </div>
           ) : (
@@ -575,9 +596,17 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
               <Button
                 variant="destructive"
                 onClick={handleDelete}
+                disabled={isPending}
                 className="cursor-pointer transition-all hover:scale-105 bg-gradient-to-r from-red-500 to-red-600 text-white"
               >
-                Delete
+                {isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
               </Button>
             </div>
           )}
