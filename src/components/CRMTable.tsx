@@ -14,8 +14,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProgressSelect } from "@/components/ui/progress-select";
+import { Input } from "@/components/ui/input";
 import { bulkUpdatePeople } from "@/actions/people";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { useTableStore } from "@/stores/tableStore";
 import { usePeopleStore } from "@/stores/peopleStore";
 import { useCallback, useEffect } from "react";
@@ -35,10 +36,12 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
     updateField,
     clearChanges,
     setSaving,
-    getPeopleWithChanges,
+    getFilteredPeople,
     getChangedRecords,
     hasChanges,
     isSaving,
+    searchTerm,
+    setSearchTerm,
   } = useTableStore();
 
   const { people, setPeople } = usePeopleStore();
@@ -54,8 +57,8 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
     setOriginalPeople(people);
   }, [people, setOriginalPeople]);
 
-  // Get the people with local changes applied
-  const peopleWithChanges = getPeopleWithChanges();
+  // Get the filtered people with local changes applied
+  const filteredPeople = getFilteredPeople();
 
   function getConnectionLabel(degree: number) {
     if (degree === 1) return "1st";
@@ -119,12 +122,31 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="mb-6">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500 dark:text-zinc-400" />
+          <Input
+            placeholder="Search contacts..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 transition-all focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-500"
+          />
+        </div>
+        {searchTerm && (
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2">
+            {filteredPeople.length} result
+            {filteredPeople.length === 1 ? "" : "s"} found
+          </p>
+        )}
+      </div>
+
       <div className="rounded-xl border bg-white dark:bg-zinc-900/30 shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="border-b border-zinc-200 dark:border-zinc-800">
               <TableHead className="font-semibold py-4 px-6 bg-zinc-50 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300">
-                Name ({peopleWithChanges.length} leads)
+                Name ({filteredPeople.length} leads)
               </TableHead>
               <TableHead className="font-semibold py-4 px-6 bg-zinc-50 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300">
                 Location
@@ -147,126 +169,152 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {peopleWithChanges.map((person: Person) => (
-              <TableRow
-                key={person.id}
-                className="group border-b border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-              >
-                <TableCell className="py-4 px-6">
-                  <div className="flex items-center gap-3">
-                    {person.profileImage ? (
-                      <img
-                        src={person.profileImage}
-                        alt={person.name || "Profile"}
-                        className="h-12 w-12 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-12 w-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                        <span className="text-lg text-zinc-500 dark:text-zinc-400">
-                          {person.name?.[0]?.toUpperCase() || "?"}
-                        </span>
-                      </div>
-                    )}
-                    <div className="font-medium text-lg text-zinc-900 dark:text-zinc-100">
-                      {person.name}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="py-4 px-6">
-                  <span className="text-zinc-900 dark:text-zinc-100">
-                    {person.location}
-                  </span>
-                </TableCell>
-                <TableCell className="py-4 px-6">
-                  <div className="flex flex-col">
-                    <span className="text-zinc-900 dark:text-zinc-100">
-                      {person.currentPosition}
-                    </span>
-                    {person.currentCompany && (
-                      <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                        {person.currentCompany}
-                      </span>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="py-4 px-6">
-                  <div className="flex items-center gap-2">
-                    {person.connected ? (
-                      <Badge className="cursor-default bg-blue-500 hover:bg-blue-600 dark:bg-blue-500 dark:hover:bg-blue-600 text-white">
-                        Connected
-                      </Badge>
-                    ) : person.connectionDegree > 0 ? (
-                      <Badge
-                        variant="secondary"
-                        className="cursor-default bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 dark:text-blue-400"
-                      >
-                        {getConnectionLabel(person.connectionDegree)} connection
-                      </Badge>
-                    ) : (
-                      <Badge
+            {filteredPeople.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-12">
+                  <div className="flex flex-col items-center gap-2">
+                    <Search className="h-8 w-8 text-zinc-400" />
+                    <p className="text-zinc-600 dark:text-zinc-400">
+                      {searchTerm
+                        ? "No contacts found matching your search"
+                        : "No contacts available"}
+                    </p>
+                    {searchTerm && (
+                      <Button
                         variant="outline"
-                        className="cursor-default border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
+                        size="sm"
+                        onClick={() => setSearchTerm("")}
+                        className="mt-2"
                       >
-                        Out of network
-                      </Badge>
+                        Clear search
+                      </Button>
                     )}
-                  </div>
-                </TableCell>
-                <TableCell className="py-4 px-6">
-                  <ProgressSelect
-                    value={person.status}
-                    options={statusOptions}
-                    onValueChange={(value) =>
-                      handleFieldUpdate(
-                        person.id,
-                        "status",
-                        value as ContactStatus
-                      )
-                    }
-                    showProgress={false}
-                  />
-                </TableCell>
-                <TableCell className="py-4 px-6">
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-7 w-7"
-                      onClick={() => {
-                        const currentValue = person.engagement ?? 0;
-                        const newValue = Math.max(0, currentValue - 1);
-                        handleFieldUpdate(person.id, "engagement", newValue);
-                      }}
-                    >
-                      <span className="text-lg leading-none">-</span>
-                    </Button>
-                    <span className="w-8 text-center font-medium text-zinc-900 dark:text-zinc-100">
-                      {person.engagement ?? 0}
-                    </span>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-7 w-7"
-                      onClick={() => {
-                        const currentValue = person.engagement ?? 0;
-                        handleFieldUpdate(
-                          person.id,
-                          "engagement",
-                          currentValue + 1
-                        );
-                      }}
-                    >
-                      <span className="text-lg leading-none">+</span>
-                    </Button>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right py-4 px-6">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ViewPersonButton personId={person.id} />
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredPeople.map((person: Person) => (
+                <TableRow
+                  key={person.id}
+                  className="group border-b border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                >
+                  <TableCell className="py-4 px-6">
+                    <div className="flex items-center gap-3">
+                      {person.profileImage ? (
+                        <img
+                          src={person.profileImage}
+                          alt={person.name || "Profile"}
+                          className="h-12 w-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                          <span className="text-lg text-zinc-500 dark:text-zinc-400">
+                            {person.name?.[0]?.toUpperCase() || "?"}
+                          </span>
+                        </div>
+                      )}
+                      <div className="font-medium text-lg text-zinc-900 dark:text-zinc-100">
+                        {person.name}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-4 px-6">
+                    <span className="text-zinc-900 dark:text-zinc-100">
+                      {person.location}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-4 px-6">
+                    <div className="flex flex-col">
+                      <span className="text-zinc-900 dark:text-zinc-100">
+                        {person.currentPosition}
+                      </span>
+                      {person.currentCompany && (
+                        <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                          {person.currentCompany}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-4 px-6">
+                    <div className="flex items-center gap-2">
+                      {person.connected ? (
+                        <Badge className="cursor-default bg-blue-500 hover:bg-blue-600 dark:bg-blue-500 dark:hover:bg-blue-600 text-white">
+                          Connected
+                        </Badge>
+                      ) : person.connectionDegree > 0 ? (
+                        <Badge
+                          variant="secondary"
+                          className="cursor-default bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 dark:text-blue-400"
+                        >
+                          {getConnectionLabel(person.connectionDegree)}{" "}
+                          connection
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="cursor-default border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
+                        >
+                          Out of network
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-4 px-6">
+                    <ProgressSelect
+                      value={person.status}
+                      options={statusOptions}
+                      onValueChange={(value) =>
+                        handleFieldUpdate(
+                          person.id,
+                          "status",
+                          value as ContactStatus
+                        )
+                      }
+                      showProgress={false}
+                    />
+                  </TableCell>
+                  <TableCell className="py-4 px-6">
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-7 w-7"
+                        onClick={() => {
+                          const currentValue = person.engagement ?? 0;
+                          const newValue = Math.max(0, currentValue - 1);
+                          handleFieldUpdate(person.id, "engagement", newValue);
+                        }}
+                      >
+                        <span className="text-lg leading-none">-</span>
+                      </Button>
+                      <span className="w-8 text-center font-medium text-zinc-900 dark:text-zinc-100">
+                        {person.engagement ?? 0}
+                      </span>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-7 w-7"
+                        onClick={() => {
+                          const currentValue = person.engagement ?? 0;
+                          handleFieldUpdate(
+                            person.id,
+                            "engagement",
+                            currentValue + 1
+                          );
+                        }}
+                      >
+                        <span className="text-lg leading-none">+</span>
+                      </Button>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right py-4 px-6">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ViewPersonButton personId={person.id} />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

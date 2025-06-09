@@ -8,15 +8,19 @@ interface TableState {
   localChanges: Record<string, Partial<Person>>;
   // Whether we're currently saving
   isSaving: boolean;
+  // Search term for filtering
+  searchTerm: string;
   
   // Actions
   setOriginalPeople: (people: Person[]) => void;
   updateField: <K extends keyof Person>(personId: string, field: K, value: Person[K]) => void;
   clearChanges: () => void;
   setSaving: (saving: boolean) => void;
+  setSearchTerm: (term: string) => void;
   
   // Computed getters
   getPeopleWithChanges: () => Person[];
+  getFilteredPeople: () => Person[];
   getChangedRecords: () => { id: string; changes: Partial<Person> }[];
   hasChanges: () => boolean;
 }
@@ -25,6 +29,7 @@ export const useTableStore = create<TableState>((set, get) => ({
   originalPeople: [],
   localChanges: {},
   isSaving: false,
+  searchTerm: '',
   
   setOriginalPeople: (people) => set({ originalPeople: people }),
   
@@ -44,12 +49,44 @@ export const useTableStore = create<TableState>((set, get) => ({
   
   setSaving: (saving) => set({ isSaving: saving }),
   
+  setSearchTerm: (term) => set({ searchTerm: term }),
+  
   getPeopleWithChanges: () => {
     const { originalPeople, localChanges } = get();
     return originalPeople.map((person) => ({
       ...person,
       ...localChanges[person.id],
     }));
+  },
+  
+  getFilteredPeople: () => {
+    const { searchTerm } = get();
+    const peopleWithChanges = get().getPeopleWithChanges();
+    
+    if (!searchTerm.trim()) {
+      return peopleWithChanges;
+    }
+    
+    const lowerSearchTerm = searchTerm.toLowerCase().trim();
+    
+    return peopleWithChanges.filter((person) => {
+      // Search across multiple fields
+      const searchFields = [
+        person.name,
+        person.location,
+        person.headline,
+        person.currentPosition,
+        person.currentCompany,
+        person.email,
+        person.phone,
+        person.about,
+        ...(person.websites || []),
+      ];
+      
+      return searchFields.some((field) =>
+        field?.toLowerCase().includes(lowerSearchTerm)
+      );
+    });
   },
   
   getChangedRecords: () => {
