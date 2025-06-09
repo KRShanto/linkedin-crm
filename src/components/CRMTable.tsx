@@ -200,22 +200,50 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
                 >
                   <TableCell className="py-4 px-6">
                     <div className="flex items-center gap-3">
-                      {person.profileImage ? (
-                        <img
-                          src={person.profileImage}
-                          alt={person.name || "Profile"}
-                          className="h-12 w-12 rounded-full object-cover"
-                        />
+                      {person.url ? (
+                        <a
+                          href={person.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 hover:opacity-80 transition-opacity group"
+                        >
+                          {person.profileImage ? (
+                            <img
+                              src={person.profileImage}
+                              alt={person.name || "Profile"}
+                              className="h-12 w-12 rounded-full object-cover ring-2 ring-transparent group-hover:ring-blue-200 dark:group-hover:ring-blue-500/20 transition-all"
+                            />
+                          ) : (
+                            <div className="h-12 w-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center ring-2 ring-transparent group-hover:ring-blue-200 dark:group-hover:ring-blue-500/20 transition-all">
+                              <span className="text-lg text-zinc-500 dark:text-zinc-400">
+                                {person.name?.[0]?.toUpperCase() || "?"}
+                              </span>
+                            </div>
+                          )}
+                          <div className="font-medium text-lg text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                            {person.name}
+                          </div>
+                        </a>
                       ) : (
-                        <div className="h-12 w-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                          <span className="text-lg text-zinc-500 dark:text-zinc-400">
-                            {person.name?.[0]?.toUpperCase() || "?"}
-                          </span>
-                        </div>
+                        <>
+                          {person.profileImage ? (
+                            <img
+                              src={person.profileImage}
+                              alt={person.name || "Profile"}
+                              className="h-12 w-12 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="h-12 w-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                              <span className="text-lg text-zinc-500 dark:text-zinc-400">
+                                {person.name?.[0]?.toUpperCase() || "?"}
+                              </span>
+                            </div>
+                          )}
+                          <div className="font-medium text-lg text-zinc-900 dark:text-zinc-100">
+                            {person.name}
+                          </div>
+                        </>
                       )}
-                      <div className="font-medium text-lg text-zinc-900 dark:text-zinc-100">
-                        {person.name}
-                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="py-4 px-6">
