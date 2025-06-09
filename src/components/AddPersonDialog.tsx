@@ -15,6 +15,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { createPerson } from "@/actions/people";
 import { ContactStatus } from "@/lib/types";
 import { Plus, X, Loader2 } from "lucide-react";
@@ -317,57 +324,46 @@ export function AddPersonDialog() {
               </div>
               <Separator className="my-2" />
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="connected" className="text-right">
+                <Label htmlFor="connection" className="text-right">
                   Connection
                 </Label>
-                <div className="col-span-3 space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="connected"
-                      checked={formData.connected}
-                      onChange={(e) =>
+                <div className="col-span-3">
+                  <Select
+                    value={
+                      formData.connected
+                        ? "connected"
+                        : formData.connectionDegree.toString()
+                    }
+                    onValueChange={(value) => {
+                      if (value === "connected") {
                         setFormData({
                           ...formData,
-                          connected: e.target.checked,
-                          connectionDegree: e.target.checked
-                            ? 1
-                            : formData.connectionDegree,
-                        })
+                          connected: true,
+                          connectionDegree: 1,
+                        });
+                      } else {
+                        const degree = parseInt(value);
+                        setFormData({
+                          ...formData,
+                          connected: degree === 1,
+                          connectionDegree: degree,
+                        });
                       }
-                      className="h-4 w-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500/20"
-                    />
-                    <Label htmlFor="connected" className="font-normal">
-                      Directly Connected
-                    </Label>
-                  </div>
-                  {!formData.connected && (
-                    <div className="flex items-center gap-4">
-                      <Label
-                        htmlFor="connectionDegree"
-                        className="whitespace-nowrap"
-                      >
-                        Connection Degree:
-                      </Label>
-                      <select
-                        id="connectionDegree"
-                        value={formData.connectionDegree}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            connectionDegree: parseInt(e.target.value),
-                            connected: parseInt(e.target.value) === 1,
-                          })
-                        }
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <option value="0">Out of network</option>
-                        <option value="1">1st degree</option>
-                        <option value="2">2nd degree</option>
-                        <option value="3">3rd degree</option>
-                      </select>
-                    </div>
-                  )}
+                    }}
+                  >
+                    <SelectTrigger className="transition-all focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-500">
+                      <SelectValue placeholder="Select connection status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="connected">
+                        Directly Connected
+                      </SelectItem>
+                      <SelectItem value="1">1st degree connection</SelectItem>
+                      <SelectItem value="2">2nd degree connection</SelectItem>
+                      <SelectItem value="3">3rd degree connection</SelectItem>
+                      <SelectItem value="0">Out of network</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <Separator className="my-2" />
