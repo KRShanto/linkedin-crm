@@ -81,39 +81,38 @@ export async function updatePerson(id: string, data: Partial<Person>) {
       throw new Error("Person not found");
     }
 
-    // If profile image is being updated
+    const oldImageUrl = currentPerson.profileImage;
+    let newImageUrl: string | null = null;
+
+    // Handle profile image updates
     if (data.profileImage !== undefined) {
-      // If new image is provided and it's a new URL
+      // Case 1: New image is provided and it's a new URL (not already stored in Supabase)
       if (data.profileImage && !data.profileImage.includes('supabase.co')) {
-        // Store the new image
-        const newImageUrl = await storeProfileImage(data.profileImage);
-        // Delete the old image if it exists
-        if (currentPerson.profileImage) {
-          await deleteProfileImage(currentPerson.profileImage);
-        }
-        // Update the image URL in the data
+        console.log('Storing new profile image...');
+        newImageUrl = await storeProfileImage(data.profileImage);
         data.profileImage = newImageUrl;
+        console.log('New image stored:', newImageUrl);
       } 
-      // If image is being removed (profileImage is null or empty string)
-      else if (!data.profileImage && currentPerson.profileImage) {
-        // Delete the old image
-        await deleteProfileImage(currentPerson.profileImage);
+      // Case 2: Image is being removed (profileImage is null or empty string)
+      else if (!data.profileImage) {
+        console.log('Removing profile image...');
+        data.profileImage = null;
       }
+      // Case 3: Image URL is already a Supabase URL (no change needed)
     }
 
-    // If connectionDegree is 1, automatically set connected to true
+    // Handle connection logic
     if (data.connectionDegree === 1) {
       data.connected = true;
     }
-    // If connected is true, automatically set connectionDegree to 1
     if (data.connected) {
       data.connectionDegree = 1;
     }
-    // If not connected and no degree specified, set to 0 (out of network)
     if (!data.connected && !data.connectionDegree) {
       data.connectionDegree = 0;
     }
 
+    // Update the database record
     const { data: updatedPerson, error } = await supabase
       .from("People")
       .update(data)
@@ -122,8 +121,35 @@ export async function updatePerson(id: string, data: Partial<Person>) {
       .single();
 
     if (error) {
-      console.error("Error updating person:", error);
+      console.error("Database update failed:", error);
+      
+      // Clean up newly uploaded image if database update failed
+      if (newImageUrl) {
+        console.log('Cleaning up new image due to DB error...');
+        try {
+          await deleteProfileImage(newImageUrl);
+        } catch (cleanupError) {
+          console.error("Failed to cleanup new image:", cleanupError);
+        }
+      }
       return null;
+    }
+
+    // Only delete the old image after successful database update
+    if (data.profileImage !== undefined && oldImageUrl) {
+      // Delete old image if we uploaded a new one OR if image was removed
+      const shouldDeleteOld = newImageUrl || data.profileImage === null;
+      
+      if (shouldDeleteOld) {
+        console.log('Deleting old profile image:', oldImageUrl);
+        try {
+          await deleteProfileImage(oldImageUrl);
+          console.log('Old image deleted successfully');
+        } catch (deleteError) {
+          console.error("Failed to delete old image (non-critical):", deleteError);
+          // This is non-critical since the database update succeeded
+        }
+      }
     }
 
     revalidatePath("/crm");
@@ -142,25 +168,39 @@ export async function deletePerson(id: string) {
       throw new Error("Person not found");
     }
 
-    // Delete the profile image if it exists
-    if (person.profileImage) {
-      await deleteProfileImage(person.profileImage);
-    }
+    const imageUrl = person.profileImage;
+    console.log('Deleting person:', person.name, 'with image:', imageUrl);
 
-    // Delete the person record
+    // Delete the person record first
     const { error } = await supabase
       .from("People")
       .delete()
       .eq("id", id);
 
     if (error) {
-      console.error("Error deleting person:", error);
-      return;
+      console.error("Error deleting person from database:", error);
+      return false;
+    }
+
+    console.log('Person deleted from database successfully');
+
+    // Delete the profile image after successful database deletion
+    if (imageUrl) {
+      console.log('Deleting profile image:', imageUrl);
+      try {
+        await deleteProfileImage(imageUrl);
+        console.log('Profile image deleted successfully');
+      } catch (imageError) {
+        console.error("Failed to delete profile image (non-critical):", imageError);
+        // This is non-critical since the person was successfully deleted from DB
+      }
     }
 
     revalidatePath("/crm");
+    return true;
   } catch (error) {
     console.error("Error in deletePerson:", error);
+    return false;
   }
 }
 

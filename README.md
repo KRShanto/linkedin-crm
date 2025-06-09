@@ -1,4 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LinkedIn CRM
+
+A modern CRM system for managing LinkedIn connections and prospects.
+
+## Features
+
+- 📊 Contact Management with optimistic updates
+- 🖼️ Profile image storage and automatic cleanup
+- 🔄 Real-time UI updates using React 19's optimistic features
+- 📱 Responsive design with dark/light mode
+- 🗄️ Supabase backend integration
+
+## Setup
+
+1. **Environment Variables**
+
+   Create a `.env.local` file with:
+
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+   ```
+
+   **Important**: The `SUPABASE_SERVICE_ROLE_KEY` is required for file deletion functionality. Without it, profile images won't be cleaned up when contacts are updated or deleted.
+
+2. **Install Dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **Run Development Server**
+
+   ```bash
+   npm run dev
+   ```
+
+## File Management
+
+The system automatically handles Supabase storage cleanup:
+
+- ✅ **When adding a contact**: Profile images are downloaded and stored in Supabase storage
+- ✅ **When updating a contact**: Old profile images are deleted when new ones are uploaded
+- ✅ **When deleting a contact**: Profile images are automatically removed from storage
+- ✅ **Error handling**: If database operations fail, uploaded images are cleaned up
+
+## Tech Stack
+
+- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
+- **Backend**: Supabase (Database + Storage + Edge Functions)
+- **State Management**: React 19's `useOptimistic` and `useTransition`
+- **UI Components**: Custom components with Radix UI primitives
 
 ## Getting Started
 
