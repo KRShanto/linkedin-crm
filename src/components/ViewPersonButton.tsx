@@ -56,6 +56,7 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
   const [open, setOpen] = useState(false);
   const [person, setPerson] = useState<Person | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -82,28 +83,46 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
     return `${degree}th`;
   }
 
-  async function handleOpen() {
-    const data = await getPerson(personId);
-    setPerson(data);
-    if (data) {
-      setFormData({
-        name: data.name || "",
-        url: data.url || "",
-        profileImage: data.profileImage || "",
-        location: data.location || "",
-        headline: data.headline || "",
-        about: data.about || "",
-        currentPosition: data.currentPosition || "",
-        currentCompany: data.currentCompany || "",
-        email: data.email || "",
-        phone: data.phone || "",
-        websites: data.websites || [],
-        connected: data.connected,
-        connectionDegree: data.connectionDegree,
-        status: data.status || ContactStatus.NOT_STARTED,
-      });
+  async function fetchPersonData() {
+    setIsLoading(true);
+    setPerson(null); // Clear previous data
+
+    try {
+      const data = await getPerson(personId);
+      setPerson(data);
+      if (data) {
+        setFormData({
+          name: data.name || "",
+          url: data.url || "",
+          profileImage: data.profileImage || "",
+          location: data.location || "",
+          headline: data.headline || "",
+          about: data.about || "",
+          currentPosition: data.currentPosition || "",
+          currentCompany: data.currentCompany || "",
+          email: data.email || "",
+          phone: data.phone || "",
+          websites: data.websites || [],
+          connected: data.connected,
+          connectionDegree: data.connectionDegree,
+          status: data.status || ContactStatus.NOT_STARTED,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch person data:", error);
+    } finally {
+      setIsLoading(false);
     }
-    setOpen(true);
+  }
+
+  function handleDialogChange(open: boolean) {
+    setOpen(open);
+    if (open) {
+      // Reset states and fetch data when opening
+      setIsEditing(false);
+      fetchPersonData();
+    }
+    // When closing, let the content persist during the closing animation
   }
 
   function addWebsite(e: React.FormEvent) {
@@ -157,12 +176,11 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleDialogChange}>
       <DialogTrigger asChild>
         <Button
           variant="outline"
           size="sm"
-          onClick={handleOpen}
           className="cursor-pointer hover:border-blue-500/50 hover:bg-blue-50 dark:hover:bg-blue-900/20"
         >
           View
@@ -171,18 +189,60 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
       <DialogContent className="sm:max-w-[625px] max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-blue-700 dark:text-blue-400">
-            {isEditing ? "Edit Contact" : "Contact Details"}
+            {isLoading
+              ? "Loading..."
+              : isEditing
+              ? "Edit Contact"
+              : "Contact Details"}
           </DialogTitle>
           <DialogDescription>
-            {isEditing
+            {isLoading
+              ? "Fetching contact information..."
+              : isEditing
               ? "Edit contact information below."
-              : "View contact details and make changes if needed."}
+              : open
+              ? "View contact details and make changes if needed."
+              : ""}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto pr-6 -mr-6">
           <div className="space-y-4">
-            {isEditing ? (
+            {isLoading ? (
+              // Loading skeleton
+              <div className="space-y-6">
+                <div className="flex items-center space-x-4">
+                  <div className="h-24 w-24 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse"></div>
+                  <div className="space-y-2">
+                    <div className="h-6 w-48 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse"></div>
+                    <div className="h-4 w-36 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse"></div>
+                    <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-6">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="space-y-2">
+                      <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse"></div>
+                      <div className="h-4 w-full bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse"></div>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse"></div>
+                  <div className="space-y-1">
+                    <div className="h-4 w-full bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse"></div>
+                    <div className="h-4 w-3/4 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+            ) : !person && open ? (
+              // Error or no data state (only show when modal should be open)
+              <div className="flex items-center justify-center py-8">
+                <p className="text-zinc-600 dark:text-zinc-400">
+                  Failed to load contact information
+                </p>
+              </div>
+            ) : isEditing ? (
               <div className="grid gap-4">
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="name" className="text-right">
@@ -560,55 +620,68 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0 mt-6">
-          {isEditing ? (
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => setIsEditing(false)}
-                className="cursor-pointer transition-all hover:bg-blue-50"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleUpdate}
-                disabled={isPending}
-                className="cursor-pointer transition-all hover:scale-105 bg-gradient-to-r from-blue-500 to-blue-600 text-white"
-              >
-                {isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </Button>
-            </div>
-          ) : (
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => setIsEditing(true)}
-                className="cursor-pointer transition-all hover:bg-blue-50"
-              >
-                Edit
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDelete}
-                disabled={isPending}
-                className="cursor-pointer transition-all hover:scale-105 bg-gradient-to-r from-red-500 to-red-600 text-white"
-              >
-                {isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete"
-                )}
-              </Button>
-            </div>
+          {!isLoading && (
+            <>
+              {isEditing ? (
+                <div className="flex gap-3 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditing(false)}
+                    className="cursor-pointer transition-all hover:bg-blue-50"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleUpdate}
+                    disabled={isPending}
+                    className="cursor-pointer transition-all hover:scale-105 bg-gradient-to-r from-blue-500 to-blue-600 text-white"
+                  >
+                    {isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Changes"
+                    )}
+                  </Button>
+                </div>
+              ) : person ? (
+                <div className="flex gap-3 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditing(true)}
+                    className="cursor-pointer transition-all hover:bg-blue-50"
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    onClick={handleDelete}
+                    disabled={isPending}
+                    className="cursor-pointer transition-all hover:scale-105 bg-gradient-to-r from-red-500 to-red-600 text-white"
+                  >
+                    {isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      "Delete"
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-3 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setOpen(false)}
+                    className="cursor-pointer transition-all hover:bg-blue-50"
+                  >
+                    Close
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </DialogFooter>
       </DialogContent>
