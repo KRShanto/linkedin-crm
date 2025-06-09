@@ -8,3 +8,21 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+
+
+export async function storeProfileImage(imageUrl: string): Promise<string> {
+  const { data, error } = await supabase.functions.invoke('store-avatar', {
+    body: { 
+      imageUrl,
+      publicUrl: supabaseUrl
+    }
+  });
+
+  if (error) {
+    console.error('Error storing profile image:', error);
+    throw error;
+  }
+
+  return data.url;
+}
