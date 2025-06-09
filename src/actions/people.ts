@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { supabase, storeProfileImage } from "@/lib/supabase";
+import { supabase, storeProfileImage, deleteProfileImage } from "@/lib/supabase";
 import { Person } from "@/lib/types";
 
 
@@ -75,9 +75,30 @@ export async function createPerson(data: Partial<Person>) {
 
 export async function updatePerson(id: string, data: Partial<Person>) {
   try {
-    // Store profile image if provided and it's a new URL
-    if (data.profileImage && !data.profileImage.includes('supabase.co')) {
-      data.profileImage = await storeProfileImage(data.profileImage);
+    // Get the current person to check if we need to delete old image
+    const currentPerson = await getPerson(id);
+    if (!currentPerson) {
+      throw new Error("Person not found");
+    }
+
+    // If profile image is being updated
+    if (data.profileImage !== undefined) {
+      // If new image is provided and it's a new URL
+      if (data.profileImage && !data.profileImage.includes('supabase.co')) {
+        // Store the new image
+        const newImageUrl = await storeProfileImage(data.profileImage);
+        // Delete the old image if it exists
+        if (currentPerson.profileImage) {
+          await deleteProfileImage(currentPerson.profileImage);
+        }
+        // Update the image URL in the data
+        data.profileImage = newImageUrl;
+      } 
+      // If image is being removed (profileImage is null or empty string)
+      else if (!data.profileImage && currentPerson.profileImage) {
+        // Delete the old image
+        await deleteProfileImage(currentPerson.profileImage);
+      }
     }
 
     // If connectionDegree is 1, automatically set connected to true
@@ -114,17 +135,33 @@ export async function updatePerson(id: string, data: Partial<Person>) {
 }
 
 export async function deletePerson(id: string) {
-  const { error } = await supabase
-    .from("People")
-    .delete()
-    .eq("id", id);
+  try {
+    // Get the person first to get their profile image URL
+    const person = await getPerson(id);
+    if (!person) {
+      throw new Error("Person not found");
+    }
 
-  if (error) {
-    console.error("Error deleting person:", error);
-    return;
+    // Delete the profile image if it exists
+    if (person.profileImage) {
+      await deleteProfileImage(person.profileImage);
+    }
+
+    // Delete the person record
+    const { error } = await supabase
+      .from("People")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting person:", error);
+      return;
+    }
+
+    revalidatePath("/crm");
+  } catch (error) {
+    console.error("Error in deletePerson:", error);
   }
-
-  revalidatePath("/crm");
 }
 
 export async function bulkUpdatePeople(updates: { id: string; changes: Partial<Person> }[]) {
