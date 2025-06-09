@@ -14,13 +14,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProgressSelect } from "@/components/ui/progress-select";
-import {
-  TableStateProvider,
-  useTableState,
-} from "@/components/providers/TableStateProvider";
 import { bulkUpdatePeople } from "@/actions/people";
 import { Loader2 } from "lucide-react";
-import { useOptimistic, useTransition, useCallback } from "react";
+import { useTableStore } from "@/stores/tableStore";
+import { usePeopleStore } from "@/stores/peopleStore";
+import { useCallback, useEffect } from "react";
 
 const statusOptions = Object.entries(ContactStatus).map(([, value]) => {
   const match = value.match(/\((\d+)\/(\d+)\)/);
@@ -31,34 +29,33 @@ const statusOptions = Object.entries(ContactStatus).map(([, value]) => {
   };
 });
 
-type OptimisticAction =
-  | { type: "add"; payload: Person }
-  | { type: "update"; payload: { id: string; changes: Partial<Person> } }
-  | { type: "delete"; payload: { id: string } };
-
 function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
-  const { updateField, hasChanges, getChangedRecords, resetChanges } =
-    useTableState();
-  const [optimisticPeople, addOptimisticUpdate] = useOptimistic(
-    initialPeople,
-    (state: Person[], action: OptimisticAction) => {
-      switch (action.type) {
-        case "add":
-          return [action.payload, ...state];
-        case "update":
-          return state.map((person) =>
-            person.id === action.payload.id
-              ? { ...person, ...action.payload.changes }
-              : person
-          );
-        case "delete":
-          return state.filter((person) => person.id !== action.payload.id);
-        default:
-          return state;
-      }
-    }
-  );
-  const [isPending, startTransition] = useTransition();
+  const {
+    setOriginalPeople,
+    updateField,
+    clearChanges,
+    setSaving,
+    getPeopleWithChanges,
+    getChangedRecords,
+    hasChanges,
+    isSaving,
+  } = useTableStore();
+
+  const { people, setPeople } = usePeopleStore();
+
+  // Initialize both stores with the data
+  useEffect(() => {
+    setPeople(initialPeople);
+    setOriginalPeople(initialPeople);
+  }, [initialPeople, setPeople, setOriginalPeople]);
+
+  // Use the people from the store as the base data, then apply local changes
+  useEffect(() => {
+    setOriginalPeople(people);
+  }, [people, setOriginalPeople]);
+
+  // Get the people with local changes applied
+  const peopleWithChanges = getPeopleWithChanges();
 
   function getConnectionLabel(degree: number) {
     if (degree === 1) return "1st";
@@ -67,40 +64,28 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
     return `${degree}th`;
   }
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     const records = getChangedRecords();
+    setSaving(true);
 
-    startTransition(async () => {
-      // Apply optimistic updates
-      records.forEach(({ id, changes }) => {
-        addOptimisticUpdate({ type: "update", payload: { id, changes } });
-      });
-
-      try {
-        // Send changes to server
-        await bulkUpdatePeople(records);
-        resetChanges();
-      } catch (error) {
-        console.error("Failed to save changes:", error);
-        // The optimistic update will be reverted automatically on error
-      }
-    });
-  }, [getChangedRecords, resetChanges, addOptimisticUpdate]);
+    try {
+      // Send changes to server
+      await bulkUpdatePeople(records);
+      clearChanges();
+    } catch (error) {
+      console.error("Failed to save changes:", error);
+    } finally {
+      setSaving(false);
+    }
+  }, [getChangedRecords, clearChanges, setSaving]);
 
   // Update local state immediately when a field changes
   const handleFieldUpdate = useCallback(
     <K extends keyof Person>(personId: string, field: K, value: Person[K]) => {
       updateField(personId, field, value);
-      // Apply optimistic update immediately
-      addOptimisticUpdate({
-        type: "update",
-        payload: { id: personId, changes: { [field]: value } },
-      });
     },
-    [updateField, addOptimisticUpdate]
+    [updateField]
   );
-
-  // TODO: Add handlers for optimistic updates once child components are updated
 
   return (
     <div className="p-8">
@@ -114,13 +99,13 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {hasChanges && (
+          {hasChanges() && (
             <Button
               onClick={handleSave}
-              disabled={isPending}
+              disabled={isSaving}
               className="bg-green-500 hover:bg-green-600 text-white"
             >
-              {isPending ? (
+              {isSaving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Saving...
@@ -139,7 +124,7 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
           <TableHeader>
             <TableRow className="border-b border-zinc-200 dark:border-zinc-800">
               <TableHead className="font-semibold py-4 px-6 bg-zinc-50 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300">
-                Name ({optimisticPeople.length} leads)
+                Name ({peopleWithChanges.length} leads)
               </TableHead>
               <TableHead className="font-semibold py-4 px-6 bg-zinc-50 dark:bg-zinc-800/30 text-zinc-700 dark:text-zinc-300">
                 Location
@@ -162,7 +147,7 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {optimisticPeople.map((person: Person) => (
+            {peopleWithChanges.map((person: Person) => (
               <TableRow
                 key={person.id}
                 className="group border-b border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
@@ -290,9 +275,5 @@ function CRMTableContent({ people: initialPeople }: { people: Person[] }) {
 }
 
 export function CRMTable({ people }: { people: Person[] }) {
-  return (
-    <TableStateProvider>
-      <CRMTableContent people={people} />
-    </TableStateProvider>
-  );
+  return <CRMTableContent people={people} />;
 }

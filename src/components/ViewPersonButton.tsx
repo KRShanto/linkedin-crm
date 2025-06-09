@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { X, Loader2 } from "lucide-react";
 import { ProgressSelect } from "@/components/ui/progress-select";
+import { usePeopleStore } from "@/stores/peopleStore";
 
 interface ViewPersonButtonProps {
   personId: string;
@@ -58,6 +59,10 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const {
+    updatePerson: updatePersonInStore,
+    deletePerson: deletePersonFromStore,
+  } = usePeopleStore();
   const [formData, setFormData] = useState<FormData>({
     name: "",
     url: "",
@@ -150,10 +155,12 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
       try {
         const updated = await updatePerson(person.id, formData);
         if (updated) {
+          // Update the store immediately for instant feedback
+          updatePersonInStore(person.id, updated);
+
           setIsEditing(false);
           setPerson(updated);
           setOpen(false);
-          // The parent component will handle the optimistic update
         }
       } catch (error) {
         console.error("Failed to update person:", error);
@@ -167,8 +174,11 @@ export function ViewPersonButton({ personId }: ViewPersonButtonProps) {
     startTransition(async () => {
       try {
         await deletePerson(person.id);
+
+        // Remove from store immediately for instant feedback
+        deletePersonFromStore(person.id);
+
         setOpen(false);
-        // The parent component will handle the optimistic update
       } catch (error) {
         console.error("Failed to delete person:", error);
       }

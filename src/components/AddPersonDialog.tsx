@@ -17,8 +17,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { createPerson } from "@/actions/people";
 import { ContactStatus } from "@/lib/types";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Loader2 } from "lucide-react";
 import { ProgressSelect } from "@/components/ui/progress-select";
+import { usePeopleStore } from "@/stores/peopleStore";
 
 type FormData = {
   name: string;
@@ -48,8 +49,9 @@ const statusOptions = Object.entries(ContactStatus).map(([, value]) => {
 
 export function AddPersonDialog() {
   const [open, setOpen] = useState(false);
-  const [newWebsite, setNewWebsite] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [newWebsite, setNewWebsite] = useState("");
+  const { addPerson } = usePeopleStore();
   const [formData, setFormData] = useState<FormData>({
     name: "",
     url: "",
@@ -90,6 +92,9 @@ export function AddPersonDialog() {
       try {
         const person = await createPerson(formData);
         if (person) {
+          // Add to the store immediately for instant feedback
+          addPerson(person);
+
           setOpen(false);
           setFormData({
             name: "",
@@ -107,7 +112,6 @@ export function AddPersonDialog() {
             connectionDegree: 0,
             status: ContactStatus.NOT_STARTED,
           });
-          // The parent page will automatically revalidate and show the new person
         }
       } catch (error) {
         console.error("Failed to create person:", error);
@@ -388,23 +392,22 @@ export function AddPersonDialog() {
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0 mt-6">
-          <div className="flex gap-3 justify-end">
-            <Button
-              variant="outline"
-              onClick={() => setOpen(false)}
-              className="cursor-pointer transition-all hover:bg-blue-50"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={isPending}
-              className="cursor-pointer transition-all hover:scale-105 bg-gradient-to-r from-blue-500 to-blue-600 text-white"
-            >
-              {isPending ? "Adding..." : "Add Contact"}
-            </Button>
-          </div>
+        <DialogFooter>
+          <Button
+            type="submit"
+            onClick={handleSubmit}
+            disabled={isPending}
+            className="cursor-pointer transition-all hover:scale-105 bg-gradient-to-r from-blue-500 to-blue-600 text-white"
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Adding...
+              </>
+            ) : (
+              "Add Contact"
+            )}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

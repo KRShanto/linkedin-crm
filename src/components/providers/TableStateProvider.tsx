@@ -30,32 +30,13 @@ export function TableStateProvider({
 
   const updateField = useCallback(
     <K extends keyof Person>(personId: string, field: K, value: Person[K]) => {
-      setChanges((prev) => {
-        const personChanges = prev[personId] || {};
-        // Only track the change if it's different from the current value
-        if (value === personChanges[field]) {
-          // If this was the only change for this person, remove the person entry
-          if (Object.keys(personChanges).length === 1) {
-            return Object.fromEntries(
-              Object.entries(prev).filter(([id]) => id !== personId)
-            );
-          }
-          // Otherwise, remove just this field
-          return {
-            ...prev,
-            [personId]: Object.fromEntries(
-              Object.entries(personChanges).filter(([key]) => key !== field)
-            ),
-          };
-        }
-        return {
-          ...prev,
-          [personId]: {
-            ...personChanges,
-            [field]: value,
-          },
-        };
-      });
+      setChanges((prev) => ({
+        ...prev,
+        [personId]: {
+          ...(prev[personId] || {}),
+          [field]: value,
+        },
+      }));
     },
     []
   );
